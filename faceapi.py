@@ -60,7 +60,9 @@ def play():
 	else:
 		# 캡처 실패
 		print("Camera Error")
-	quit()
+	
+	print('faceapi end')
+	return 0	
 
 if __name__ == '__main__':
 	play()
