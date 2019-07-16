@@ -42,12 +42,11 @@ def printResult():
 	emotion_list = restapi.GetEmotion()
 
 	for key in emotion_list.keys():
-		print(key)
-		print(" : " + str(emotion_list[key]))
+		print(key + " : " + str(emotion_list[key]))
 
 
 
-if __name__ == '__main__':
+def play():
 	if capture() == True:
 		# 캡처 성공시 이미지 전송
 		faces = post()
@@ -62,4 +61,6 @@ if __name__ == '__main__':
 		# 캡처 실패
 		print("Camera Error")
 	quit()
-	
+
+if __name__ == '__main__':
+	play()
