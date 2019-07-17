@@ -40,10 +40,11 @@ def post():
 def printResult():
 	# 감정 데이터 받아오기
 	emotion_list = restapi.GetEmotion()
+
 	emotion_str = ''
 	for key in emotion_list.keys():
 		emotion_str += key + " : " + str(emotion_list[key]) + "\n"
-	
+	print(emotion_str)
 	return emotion_str
 
 

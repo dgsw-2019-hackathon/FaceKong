@@ -1,1 +1,12 @@
 7
+씬1로 넘김
+씬3으로 넘김
+1
+True
+faces : 0
+No detected. Try Again.
+faceapi end
+faceapi play end
+결과창으로
+씬 1로 넘김
+씬 0으로 넘김
