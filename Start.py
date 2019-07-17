@@ -1,6 +1,13 @@
-import pygame as pg
+#-*-encoding:utf-8
+import pygame
+import pygame.camera
 from pygame.locals import *
+import numpy as np
 import sys
+import cv2
+from PIL import Image
+import faceapi
+import threading
 
 #씬 위치
 scene = 0
@@ -22,25 +29,25 @@ ground_color = WHITE
 
 
 #메인화면 이미지
-img_start = pg.image.load('image/Start.png')
+img_start = pygame.image.load('image/Start.png')
 
 #배경화면 이미지
-img_background = pg.image.load('image/background.png')
+img_background = pygame.image.load('image/background.png')
 
 #버튼 이미지 메인화면
-img_mod1 = pg.image.load('image/Mod_1.png')
-img_mod2 = pg.image.load('image/mod_2.png')
-img_return = pg.image.load('image/Return.png')
+img_mod1 = pygame.image.load('image/Mod_1.png')
+img_mod2 = pygame.image.load('image/mod_2.png')
+img_return = pygame.image.load('image/Return.png')
 
 #버튼 이미지 결과창
-img_home = pg.image.load('image/Home.png')
-img_retry = pg.image.load('image/ReTry.png')
+img_home = pygame.image.load('image/Home.png')
+img_retry = pygame.image.load('image/ReTry.png')
 
 #선택창 이미지들
 
 #img_list = ["슬픔", "경멸스러움", "역겨움", "화남", "놀람", "무서움", "행복함"]
-img_list = [pg.image.load('image/Home.png'), pg.image.load('image/Home.png'), pg.image.load('image/Home.png'), pg.image.load('image/Home.png'),
-            pg.image.load('image/Home.png'), pg.image.load('image/Home.png'), pg.image.load('image/Home.png')]
+img_list = [pygame.image.load('image/Home.png'), pygame.image.load('image/Home.png'), pygame.image.load('image/Home.png'), pygame.image.load('image/Home.png'),
+            pygame.image.load('image/Home.png'), pygame.image.load('image/Home.png'), pygame.image.load('image/Home.png')]
 
 
 #버튼 좌표 설정 - 시작화면
@@ -58,6 +65,7 @@ button_return_pos = img_return.get_rect(x = 660, y = 390)
 button_home_pos = img_home.get_rect(x = 500, y = 370)
 button_retry_pos = img_retry.get_rect(x = 170, y = 370)
 
+button_capture_pos = img_home.get_rect(x = 300, y = 400)
 #버튼 좌표 설정 - 선택창
 i = 0
 list_lenght = len(img_list)
@@ -100,32 +108,90 @@ def select_scene():
     pad.blit(img_home, button_home_pos)
         
     #pad.blit(img_list[0], img_list[0].get_rect(x = 0, y = 0))
-    for event in pg.event.get():
-        if event.type == pg.MOUSEBUTTONDOWN:
-            if button_home_pos.collidepoint(pg.mouse.get_pos()):
+    for event in pygame.event.get():
+        if event.type == pygame.MOUSEBUTTONDOWN:
+            if button_home_pos.collidepoint(pygame.mouse.get_pos()):
                 scene = 1
-                print("씬 1로 넘김")
+                print("씬 1로 넘김") 
+
+def play_scene():
+    global pad, scene, cam, result_str
+
+    background()
+
+    #cam.start()
+    cam_image = cam.get_image()
+    pad.blit(cam_image, (0, 0))
+    
+    pad.blit(img_retry, button_capture_pos)
+    pad.blit(img_home, button_home_pos)
+
+    font = pygame.font.Font('freesansbold.ttf', 40)
+    TextSurf = font.render("촬영 후 잠시 기다려주세요", True, (255, 255, 255))
+    pad.blit(TextSurf, (300, 420))
+    
+    for event in pygame.event.get():
+        if event.type == pygame.MOUSEBUTTONDOWN:
+	    if button_home_pos.collidepoint(pygame.mouse.get_pos()):
+	        cam.stop()
+		scene = 1
+		cam.start()
+		print("메인 화면으로")
+            elif button_capture_pos.collidepoint(pygame.mouse.get_pos()):
+	        
+		cam.stop()
+
+		result_str = faceapi.play()
+		print('faceapi play end')
+		scene = 5
+		cam.start()
+		print("결과창으로")
+
 
 #결과 씬 함수
 def result_scene():
     
-    global pad, scene
+    global pad, scene, result_str
 
     background()
     
+    img = Image.open('image.jpg')
+    img_array = np.array(img)
+    img_resize = cv2.resize(img_array, (440, 340))
+    img = Image.fromarray(img_resize)
+    img.save('image2.jpg')
+    captured_image = pygame.image.load("image2.jpg")
+    
+    pad.blit(captured_image, (0, 0))
     pad.blit(img_home, button_home_pos)
     pad.blit(img_retry, button_retry_pos)
+    
+    max_value = 0.0
+    best_emotion = 'neutral'
+    y = 10
+    for s in result_str.split('\n'):
+        font = pygame.font.Font('freesansbold.ttf', 15)
+        TextSurf = font.render(s, True, (255, 255, 255))
+        pad.blit(TextSurf, (650, y))
+	y += 17
 
-    for event in pg.event.get():
-        if event.type == pg.MOUSEBUTTONDOWN:
-            if button_home_pos.collidepoint(pg.mouse.get_pos()):
+	key_value_list = s.split(' : ')
+	if len(key_value_list) == 2:
+	    if float(key_value_list[1]) > max_value:
+	        best_emotion = key_value_list[0]
+    
+    largeFont = pygame.font.Font('freesansbold.ttf', 50)
+    TextSurf = largeFont.render(best_emotion, True, (255, 255, 255))
+    pad.blit(TextSurf, (320, 340))
+
+    for event in pygame.event.get():
+        if event.type == pygame.MOUSEBUTTONDOWN:
+            if button_home_pos.collidepoint(pygame.mouse.get_pos()):
                 scene = 1
                 print("씬 1로 넘김")
-            elif button_retry_pos.collidepoint(pg.mouse.get_pos()):
-                if mod :
-                    print("준비중")
-                else :
-                    select_scene()
+            elif button_retry_pos.collidepoint(pygame.mouse.get_pos()):
+                scene = 3
+		print("Play 씬으로")
 
 # 메인 씬 함수
 def main_scene():
@@ -138,21 +204,21 @@ def main_scene():
     pad.blit(img_mod2, button_mod2_pos)
     pad.blit(img_return, button_return_pos)
     
-    for event in pg.event.get():
-        if event.type == pg.MOUSEBUTTONDOWN:
-            if button_mod1_pos.collidepoint(pg.mouse.get_pos()):
-                #print("씬3으로 넘김")
-                #scene = 3
-                print("임시 결과창으로 넘김")
-                scene = 5
+    for event in pygame.event.get():
+        if event.type == pygame.MOUSEBUTTONDOWN:
+            if button_mod1_pos.collidepoint(pygame.mouse.get_pos()):
+                print("씬3으로 넘김")
+                scene = 3
+               # print("임시 결과창으로 넘김")
+                #scene = 5
                 mod = 1
                 print(mod)
-            elif button_mod2_pos.collidepoint(pg.mouse.get_pos()):
+            elif button_mod2_pos.collidepoint(pygame.mouse.get_pos()):
                 print("씬2으로 넘김")
                 scene = 2
                 mod = 2
                 print(mod)
-            elif button_return_pos.collidepoint(pg.mouse.get_pos()):
+            elif button_return_pos.collidepoint(pygame.mouse.get_pos()):
                 print("씬 0으로 넘김")
                 scene = 0
 
@@ -165,18 +231,21 @@ def start_scene():
     
     pad.blit(img_start, button_start_pos)
     
-    for event in pg.event.get(): # 이벤트가 있을때 반복 
-        if event.type == pg.QUIT: # 우측 상단 X키 누르면 꺼짐
+    for event in pygame.event.get(): # 이벤트가 있을때 반복 
+        if event.type == pygame.QUIT: # 우측 상단 X키 누르면 꺼짐
             exit_scene = True
-        elif event.type == pg.MOUSEBUTTONDOWN:
-            if button_start_pos.collidepoint(pg.mouse.get_pos()):
+        elif event.type == pygame.MOUSEBUTTONDOWN:
+            if button_start_pos.collidepoint(pygame.mouse.get_pos()):
                 print("씬1로 넘김")
                 scene = 1
-
+	elif event.type == pygame.KEYDOWN:
+	    if event.key == pygame.K_ESCAPE:
+	    	exit_scene = True
+		
 #동작 메인
 def main():
     
-    global pad, clock, scene, exit_scene
+    global pad, clock, scene, exit_scene, cam
 
     exit_scene = False # 클릭 False
     
@@ -186,29 +255,32 @@ def main():
         elif scene == 2:
             select_scene()
         elif scene == 3:
-            print("준비중")
-            scene = 1
+	    play_scene()
         elif scene == 5:
             result_scene()
         else:    
             start_scene()
             
-        pg.time.delay(1) #딜레이 설정
-        pg.display.update()
+        pygame.time.delay(1) #딜레이 설정
+        pygame.display.update()
         clock.tick(60)
 
-    pg.quit()
+    pygame.quit()
     sys.exit()
 
 #시작 셋팅
 def start():
     
-    global pad, clock
+    global pad, clock, cam
 
-    pg.init()
-    pad = pg.display.set_mode((width, height))
-    pg.display.set_caption('FACE')
-    clock = pg.time.Clock()
+    pygame.init()
+    pygame.camera.init()
+    pad = pygame.display.set_mode((width, height), pygame.FULLSCREEN)
+
+    cam = pygame.camera.Camera("/dev/video0", (800, 400))
+    cam.start()
+    pygame.display.set_caption('FACE')
+    clock = pygame.time.Clock()
 
     main()
 
