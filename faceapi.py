@@ -40,19 +40,21 @@ def post():
 def printResult():
 	# 감정 데이터 받아오기
 	emotion_list = restapi.GetEmotion()
-
+	emotion_str = ''
 	for key in emotion_list.keys():
-		print(key + " : " + str(emotion_list[key]))
-
+		emotion_str += key + " : " + str(emotion_list[key]) + "\n"
+	
+	return emotion_str
 
 
 def play():
+	result_str = ''
 	if capture() == True:
 		# 캡처 성공시 이미지 전송
 		faces = post()
 		# 얼굴 정보가 1개일 때만 실행
 		if faces == 1:
-			printResult()
+			result_str = printResult()
 		elif faces == 0:
 			print("No detected. Try Again.")
 		else:
@@ -62,7 +64,7 @@ def play():
 		print("Camera Error")
 	
 	print('faceapi end')
-	return 0	
+	return result_str
 
 if __name__ == '__main__':
 	play()

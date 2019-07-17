@@ -2,9 +2,12 @@
 import pygame
 import pygame.camera
 from pygame.locals import *
+import numpy as np
 import sys
-
+import cv2
+from PIL import Image
 import faceapi
+import threading
 
 #씬 위치
 scene = 0
@@ -109,10 +112,10 @@ def select_scene():
         if event.type == pygame.MOUSEBUTTONDOWN:
             if button_home_pos.collidepoint(pygame.mouse.get_pos()):
                 scene = 1
-                print("씬 1로 넘김")
+                print("씬 1로 넘김") 
 
 def play_scene():
-    global pad, scene, cam
+    global pad, scene, cam, result_str
 
     background()
 
@@ -122,17 +125,23 @@ def play_scene():
     
     pad.blit(img_retry, button_capture_pos)
     pad.blit(img_home, button_home_pos)
- 
- 
+
+    font = pygame.font.Font('freesansbold.ttf', 40)
+    TextSurf = font.render("촬영 후 잠시 기다려주세요", True, (255, 255, 255))
+    pad.blit(TextSurf, (300, 420))
+    
     for event in pygame.event.get():
         if event.type == pygame.MOUSEBUTTONDOWN:
 	    if button_home_pos.collidepoint(pygame.mouse.get_pos()):
 	        cam.stop()
 		scene = 1
+		cam.start()
 		print("메인 화면으로")
             elif button_capture_pos.collidepoint(pygame.mouse.get_pos()):
-	        cam.stop()
-		faceapi.play()
+	        
+		cam.stop()
+
+		result_str = faceapi.play()
 		print('faceapi play end')
 		scene = 5
 		cam.start()
@@ -142,12 +151,38 @@ def play_scene():
 #결과 씬 함수
 def result_scene():
     
-    global pad, scene
+    global pad, scene, result_str
 
     background()
     
+    img = Image.open('image.jpg')
+    img_array = np.array(img)
+    img_resize = cv2.resize(img_array, (440, 340))
+    img = Image.fromarray(img_resize)
+    img.save('image2.jpg')
+    captured_image = pygame.image.load("image2.jpg")
+    
+    pad.blit(captured_image, (0, 0))
     pad.blit(img_home, button_home_pos)
     pad.blit(img_retry, button_retry_pos)
+    
+    max_value = 0.0
+    best_emotion = 'neutral'
+    y = 10
+    for s in result_str.split('\n'):
+        font = pygame.font.Font('freesansbold.ttf', 15)
+        TextSurf = font.render(s, True, (255, 255, 255))
+        pad.blit(TextSurf, (650, y))
+	y += 17
+
+	key_value_list = s.split(' : ')
+	if len(key_value_list) == 2:
+	    if float(key_value_list[1]) > max_value:
+	        best_emotion = key_value_list[0]
+    
+    largeFont = pygame.font.Font('freesansbold.ttf', 50)
+    TextSurf = largeFont.render(best_emotion, True, (255, 255, 255))
+    pad.blit(TextSurf, (320, 340))
 
     for event in pygame.event.get():
         if event.type == pygame.MOUSEBUTTONDOWN:
@@ -155,10 +190,8 @@ def result_scene():
                 scene = 1
                 print("씬 1로 넘김")
             elif button_retry_pos.collidepoint(pygame.mouse.get_pos()):
-                if mod :
-                    print("준비중")
-                else :
-                    select_scene()
+                scene = 3
+		print("Play 씬으로")
 
 # 메인 씬 함수
 def main_scene():
